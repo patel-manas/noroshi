@@ -21,11 +21,14 @@ jobs:
 
       - name: Deploy via SSH to GCE VM
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
         with:
           host: ${{ secrets.GCE_HOST }}
           username: ${{ secrets.GCE_USERNAME }}
           key: ${{ secrets.GCE_SSH_KEY }}
           port: 22
+          envs: VITE_SENTRY_DSN
           script: |
             set -e
             echo "🚀 Deploying Noroshi to Google Cloud VM..."
@@ -42,11 +45,16 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
-            # Ensure .env exists
-            if [ ! -f "infra/production/.env" ]; then
-              echo "⚙️ Creating production .env from template..."
-              cp infra/production/.env.prod.example infra/production/.env
-            fi
+            # Write production .env directly from GitHub Secret
+            echo "⚙️ Writing production .env directly..."
+            cat << 'ENVEOF' > infra/production/.env
+POSTGRES_USER=noroshi
+POSTGRES_PASSWORD=noroshi_production_secure_pwd
+POSTGRES_DB=noroshi
+GRAFANA_USER=admin
+GRAFANA_PASSWORD=admin
+ENVEOF
+            echo "VITE_SENTRY_DSN=${VITE_SENTRY_DSN}" >> infra/production/.env
 
             echo "🐳 Building and restarting Docker containers..."
             docker compose --env-file infra/production/.env -f infra/production/docker-compose.prod.yml up -d --build
