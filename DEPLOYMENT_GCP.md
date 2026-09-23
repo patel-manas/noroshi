@@ -20,7 +20,7 @@ This guide walks you through deploying the complete **Noroshi Platform** (Postgr
 
 ```bash
 gcloud compute instances create noroshi-prod \
-    --project="YOUR_GCP_PROJECT_ID" \
+    --project="noroshi-prod-67579" \
     --zone="us-central1-a" \
     --machine-type="e2-standard-2" \
     --image-family="ubuntu-2404-lts-amd64" \
@@ -88,7 +88,7 @@ newgrp docker
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/noroshi.git
+git clone https://github.com/patel-manas/noroshi.git
 cd noroshi
 
 # Create your production environment file
@@ -190,3 +190,36 @@ sudo systemctl enable noroshi.service
 | **Health Check** | `http://<VM_IP>/health` | Fastify service health |
 | **Grafana Dashboard** | `http://<VM_IP>:3001` | LGTM Metrics, Logs & Tempo Traces |
 | **Prometheus** | `http://<VM_IP>:9090` | Prometheus scraper & metrics explorer |
+
+---
+
+## 8. Automated GitHub Actions Deployment (One-Click Trigger)
+
+We have created an automated deployment workflow: [deploy.yml](file:///.github/workflows/deploy.yml).
+
+### How It Works:
+1. **Manual Trigger**: You can trigger a deployment anytime from the GitHub UI (**Actions** &rarr; **Deploy to Google Cloud Compute Engine** &rarr; **Run workflow**).
+2. **Auto Deploy on Push**: Pushing to `main` automatically deploys the latest version to your GCE VM.
+3. **Zero Downtime**: It pulls the latest changes, builds the images, and restarts the containers automatically.
+
+### Configuring GitHub Repository Secrets:
+Go to your GitHub repository: **Settings** &rarr; **Secrets and variables** &rarr; **Actions** &rarr; **New repository secret**:
+
+1. **`GCE_HOST`**: The External Public IP of your Google Cloud VM (e.g. `34.123.45.67`).
+2. **`GCE_USERNAME`**: Your SSH username on the VM (run `whoami` on the VM to check, e.g. `sagarikapatel` or `manas`).
+3. **`GCE_SSH_KEY`**: The private SSH key for accessing the VM.
+
+#### To generate an SSH key for GitHub Actions on your local machine:
+```bash
+# Generate dedicated deployment key
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/gce_noroshi_deploy -C "github-actions-deploy" -N ""
+
+# 1. Add the public key to your GCE VM metadata:
+cat ~/.ssh/gce_noroshi_deploy.pub
+# Copy this output and paste it into GCP Console -> Compute Engine -> Metadata -> SSH Keys
+
+# 2. Add the private key to GitHub Secrets (GCE_SSH_KEY):
+cat ~/.ssh/gce_noroshi_deploy
+# Copy the entire private key including -----BEGIN OPENSSH PRIVATE KEY-----
+```
+

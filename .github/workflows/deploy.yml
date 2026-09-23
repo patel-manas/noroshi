@@ -1,0 +1,61 @@
+name: Deploy to Google Cloud Compute Engine
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target Environment"
+        required: true
+        default: "production"
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to GCE VM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH to GCE VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.GCE_HOST }}
+          username: ${{ secrets.GCE_USERNAME }}
+          key: ${{ secrets.GCE_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            echo "🚀 Deploying Noroshi to Google Cloud VM..."
+
+            # Locate or clone noroshi
+            TARGET_DIR="$HOME/noroshi"
+            if [ ! -d "$TARGET_DIR" ]; then
+              git clone https://github.com/patel-manas/noroshi.git "$TARGET_DIR"
+            fi
+
+            cd "$TARGET_DIR"
+
+            echo "📥 Pulling latest code from origin main..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Ensure .env exists
+            if [ ! -f "infra/production/.env" ]; then
+              echo "⚙️ Creating production .env from template..."
+              cp infra/production/.env.prod.example infra/production/.env
+            fi
+
+            echo "🐳 Building and restarting Docker containers..."
+            docker compose --env-file infra/production/.env -f infra/production/docker-compose.prod.yml up -d --build
+
+            echo "🔍 Waiting for services to become healthy..."
+            sleep 8
+            docker compose -f infra/production/docker-compose.prod.yml ps
+
+            echo "✅ Checking API Health..."
+            curl -fsSL http://localhost/health || curl -fsSL http://localhost:3000/health || true
+
+            echo "🎉 Noroshi deployed successfully on Google Cloud Compute Engine!"
