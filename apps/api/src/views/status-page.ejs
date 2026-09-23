@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en" data-astryx-theme="astryx">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="60">
+  <title><%= page.name %> — Status</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-brand: #3D87FF;
+      --color-brand-glow: rgba(61, 135, 255, 0.25);
+      --bg-base: #090A0C;
+      --bg-surface: #121417;
+      --bg-surface-elevated: #1A1D21;
+      --bg-surface-subtle: #16181B;
+      --border-subtle: rgba(255, 255, 255, 0.07);
+      --border-strong: rgba(255, 255, 255, 0.14);
+      --text-primary: #F3F4F6;
+      --text-secondary: #9CA3AF;
+      --text-muted: #6B7280;
+
+      --status-operational: #10B981;
+      --status-operational-bg: rgba(16, 185, 129, 0.1);
+      --status-operational-border: rgba(16, 185, 129, 0.25);
+
+      --status-degraded: #F59E0B;
+      --status-degraded-bg: rgba(245, 158, 11, 0.1);
+      --status-degraded-border: rgba(245, 158, 11, 0.25);
+
+      --status-partial: #F97316;
+      --status-partial-bg: rgba(249, 115, 22, 0.1);
+      --status-partial-border: rgba(249, 115, 22, 0.25);
+
+      --status-major: #EF4444;
+      --status-major-bg: rgba(239, 68, 68, 0.12);
+      --status-major-border: rgba(239, 68, 68, 0.3);
+
+      --status-maintenance: #818CF8;
+      --status-maintenance-bg: rgba(129, 140, 248, 0.1);
+      --status-maintenance-border: rgba(129, 140, 248, 0.25);
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-full: 9999px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Ambient background glow */
+    .ambient-glow {
+      position: fixed;
+      top: -150px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 350px;
+      background: radial-gradient(circle, var(--color-brand-glow) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+      filter: blur(60px);
+      opacity: 0.6;
+    }
+
+    .container {
+      max-width: 820px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #225BFF 0%, #3D87FF 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px var(--color-brand-glow);
+    }
+
+    .brand-icon svg {
+      color: #fff;
+    }
+
+    .brand-titles h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-titles p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .subscribe-btn {
+      background: var(--bg-surface-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-full);
+      padding: 8px 16px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+
+    .subscribe-btn:hover {
+      background: var(--border-strong);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Overall Status Hero Card */
+    .status-hero {
+      border-radius: var(--radius-lg);
+      padding: 24px 28px;
+      margin-bottom: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid;
+      backdrop-filter: blur(12px);
+    }
+
+    .status-hero.operational {
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%);
+      border-color: var(--status-operational-border);
+    }
+
+    .status-hero.major_outage {
+      background: linear-gradient(180deg, rgba(239, 68, 68, 0.14) 0%, rgba(239, 68, 68, 0.05) 100%);
+      border-color: var(--status-major-border);
+    }
+
+    .status-hero.partial_outage, .status-hero.degraded {
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.04) 100%);
+      border-color: var(--status-degraded-border);
+    }
+
+    .hero-content {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .status-indicator-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      position: relative;
+    }
+
+    .status-hero.operational .status-indicator-dot {
+      background: var(--status-operational);
+      box-shadow: 0 0 12px var(--status-operational);
+    }
+
+    .status-hero.major_outage .status-indicator-dot {
+      background: var(--status-major);
+      box-shadow: 0 0 12px var(--status-major);
+    }
+
+    .status-hero.partial_outage .status-indicator-dot,
+    .status-hero.degraded .status-indicator-dot {
+      background: var(--status-degraded);
+      box-shadow: 0 0 12px var(--status-degraded);
+    }
+
+    .hero-text h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .hero-text p {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .hero-timestamp {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      text-align: right;
+    }
+
+    /* Section Styling */
+    .section-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 14px;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title .badge {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      background: var(--bg-surface-elevated);
+      color: var(--text-muted);
+      border: 1px solid var(--border-subtle);
+    }
+
+    /* Active Incidents */
+    .incidents-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .incident-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      transition: border-color 0.2s;
+    }
+
+    .incident-card.sev1 {
+      border-left: 4px solid var(--status-major);
+    }
+
+    .incident-card.sev2 {
+      border-left: 4px solid var(--status-partial);
+    }
+
+    .incident-card.sev3 {
+      border-left: 4px solid var(--status-degraded);
+    }
+
+    .incident-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .incident-header h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+
+    .incident-badges {
+      display: flex;
+      gap: 8px;
+    }
+
+    .badge-status {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+    }
+
+    .badge-status.triggered, .badge-status.investigating {
+      background: var(--status-partial-bg);
+      color: var(--status-partial);
+      border: 1px solid var(--status-partial-border);
+    }
+
+    .badge-status.resolved {
+      background: var(--status-operational-bg);
+      color: var(--status-operational);
+      border: 1px solid var(--status-operational-border);
+    }
+
+    .badge-severity {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface-elevated);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-strong);
+    }
+
+    .incident-description {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+    }
+
+    .incident-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 14px;
+    }
+
+    .timeline-item {
+      display: flex;
+      gap: 14px;
+      font-size: 0.85rem;
+    }
+
+    .timeline-time {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+      min-width: 140px;
+      font-size: 0.75rem;
+    }
+
+    .timeline-message {
+      color: var(--text-secondary);
+    }
+
+    .timeline-message strong {
+      color: var(--text-primary);
+    }
+
+    /* Components Group Card */
+    .components-section {
+      margin-bottom: 40px;
+    }
+
+    .group-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .group-header {
+      padding: 16px 20px;
+      background: var(--bg-surface-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .group-header h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .group-header span {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .component-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background 0.15s;
+    }
+
+    .component-row:last-child {
+      border-bottom: none;
+    }
+
+    .component-row:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .component-info h4 {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .component-info p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .component-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      border: 1px solid;
+    }
+
+    .component-status-pill.operational {
+      background: var(--status-operational-bg);
+      color: var(--status-operational);
+      border-color: var(--status-operational-border);
+    }
+
+    .component-status-pill.degraded_performance {
+      background: var(--status-degraded-bg);
+      color: var(--status-degraded);
+      border-color: var(--status-degraded-border);
+    }
+
+    .component-status-pill.partial_outage {
+      background: var(--status-partial-bg);
+      color: var(--status-partial);
+      border-color: var(--status-partial-border);
+    }
+
+    .component-status-pill.major_outage {
+      background: var(--status-major-bg);
+      color: var(--status-major);
+      border-color: var(--status-major-border);
+    }
+
+    .component-status-pill.under_maintenance {
+      background: var(--status-maintenance-bg);
+      color: var(--status-maintenance);
+      border-color: var(--status-maintenance-border);
+    }
+
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* 90-Day Uptime Bar Visual Rail */
+    .uptime-rail {
+      display: flex;
+      gap: 2px;
+      align-items: center;
+      margin-top: 6px;
+    }
+
+    .uptime-bar {
+      height: 16px;
+      flex: 1;
+      background: rgba(16, 185, 129, 0.7);
+      border-radius: 2px;
+      transition: opacity 0.2s;
+    }
+
+    .uptime-bar:hover {
+      opacity: 0.9;
+    }
+
+    .uptime-bar.degraded {
+      background: var(--status-degraded);
+    }
+
+    .uptime-bar.outage {
+      background: var(--status-major);
+    }
+
+    .uptime-summary {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Footer */
+    footer {
+      margin-top: auto;
+      border-top: 1px solid var(--border-subtle);
+      padding: 28px 20px;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    footer a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    footer a:hover {
+      color: var(--color-brand);
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient-glow"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div class="brand-titles">
+          <h1><%= page.name %></h1>
+          <p><%= org ? org.name : 'System Status' %></p>
+        </div>
+      </div>
+
+      <a href="javascript:void(0)" onclick="alert('Subscription feature coming in Phase 2!')" class="subscribe-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+        </svg>
+        Subscribe to updates
+      </a>
+    </header>
+
+    <!-- Overall Status Banner -->
+    <section class="status-hero <%= overallStatus %>">
+      <div class="hero-content">
+        <div class="status-indicator-dot"></div>
+        <div class="hero-text">
+          <h2><%= statusHeadline %></h2>
+          <p><%= statusDescription %></p>
+        </div>
+      </div>
+      <div class="hero-timestamp">
+        Auto-refreshes every 60s
+      </div>
+    </section>
+
+    <!-- Active Incidents Section -->
+    <% if (activeIncidents && activeIncidents.length > 0) { %>
+      <section class="incidents-section">
+        <div class="section-title">
+          <span>Active Incidents</span>
+          <span class="badge"><%= activeIncidents.length %></span>
+        </div>
+        <div class="incidents-list">
+          <% activeIncidents.forEach(function(inc) { %>
+            <div class="incident-card <%= inc.severity %>">
+              <div class="incident-header">
+                <div>
+                  <h3><%= inc.title %></h3>
+                </div>
+                <div class="incident-badges">
+                  <span class="badge-status <%= inc.status %>"><%= inc.status %></span>
+                  <span class="badge-severity"><%= inc.severity.toUpperCase() %></span>
+                </div>
+              </div>
+              <% if (inc.description) { %>
+                <p class="incident-description"><%= inc.description %></p>
+              <% } %>
+
+              <% if (inc.updates && inc.updates.length > 0) { %>
+                <div class="incident-timeline">
+                  <% inc.updates.forEach(function(upd) { %>
+                    <div class="timeline-item">
+                      <span class="timeline-time"><%= new Date(upd.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) %></span>
+                      <span class="timeline-message">
+                        <strong>[<%= upd.status %>]</strong> <%= upd.message %>
+                      </span>
+                    </div>
+                  <% }); %>
+                </div>
+              <% } %>
+            </div>
+          <% }); %>
+        </div>
+      </section>
+    <% } %>
+
+    <!-- Components Section -->
+    <section class="components-section">
+      <div class="section-title">
+        <span>System Components</span>
+      </div>
+
+      <!-- Grouped components -->
+      <% groupedComponents.forEach(function(group) { %>
+        <div class="group-card">
+          <div class="group-header">
+            <h3><%= group.name %></h3>
+            <% if (group.description) { %>
+              <span><%= group.description %></span>
+            <% } %>
+          </div>
+          <% if (group.components.length === 0) { %>
+            <div class="component-row">
+              <span style="font-size: 0.85rem; color: var(--text-muted);">No components in this group</span>
+            </div>
+          <% } else { %>
+            <% group.components.forEach(function(comp) { %>
+              <div class="component-row">
+                <div class="component-info">
+                  <h4><%= comp.name %></h4>
+                  <% if (comp.description) { %>
+                    <p><%= comp.description %></p>
+                  <% } %>
+                </div>
+                <div class="component-status-pill <%= comp.status %>">
+                  <span class="pill-dot"></span>
+                  <%= comp.status.replace(/_/g, ' ') %>
+                </div>
+              </div>
+            <% }); %>
+          <% } %>
+        </div>
+      <% }); %>
+
+      <!-- Ungrouped components -->
+      <% if (ungroupedComponents && ungroupedComponents.length > 0) { %>
+        <div class="group-card">
+          <div class="group-header">
+            <h3>Other Services</h3>
+          </div>
+          <% ungroupedComponents.forEach(function(comp) { %>
+            <div class="component-row">
+              <div class="component-info">
+                <h4><%= comp.name %></h4>
+                <% if (comp.description) { %>
+                  <p><%= comp.description %></p>
+                <% } %>
+              </div>
+              <div class="component-status-pill <%= comp.status %>">
+                <span class="pill-dot"></span>
+                <%= comp.status.replace(/_/g, ' ') %>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      <% } %>
+
+      <!-- 90-Day Uptime Rail Simulation -->
+      <div class="group-card" style="padding: 16px 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 0.85rem; font-weight: 600;">System Uptime (Last 90 Days)</span>
+          <span style="font-size: 0.85rem; font-weight: 700; color: var(--status-operational);">99.98%</span>
+        </div>
+        <div class="uptime-rail">
+          <% for(let i = 0; i < 90; i++) { %>
+            <% let barClass = (i === 12 || i === 45) ? 'degraded' : (i === 78 ? 'outage' : ''); %>
+            <div class="uptime-bar <%= barClass %>" title="Day <%= 90 - i %>"></div>
+          <% } %>
+        </div>
+        <div class="uptime-summary">
+          <span>90 days ago</span>
+          <span>Today</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Past Incidents Section -->
+    <section class="past-incidents-section">
+      <div class="section-title">
+        <span>Past Incidents</span>
+      </div>
+      <% if (!pastIncidents || pastIncidents.length === 0) { %>
+        <div class="group-card" style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+          No incidents reported in the past 90 days.
+        </div>
+      <% } else { %>
+        <div class="incidents-list">
+          <% pastIncidents.forEach(function(inc) { %>
+            <div class="incident-card" style="opacity: 0.85;">
+              <div class="incident-header">
+                <div>
+                  <h3 style="font-size: 0.95rem;"><%= inc.title %></h3>
+                  <span style="font-size: 0.75rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
+                    Resolved on <%= new Date(inc.resolvedAt || inc.updatedAt).toLocaleDateString() %>
+                  </span>
+                </div>
+                <div class="incident-badges">
+                  <span class="badge-status resolved">Resolved</span>
+                  <span class="badge-severity"><%= inc.severity.toUpperCase() %></span>
+                </div>
+              </div>
+              <% if (inc.updates && inc.updates.length > 0) { %>
+                <div class="incident-timeline">
+                  <% inc.updates.slice(0, 2).forEach(function(upd) { %>
+                    <div class="timeline-item">
+                      <span class="timeline-time"><%= new Date(upd.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %></span>
+                      <span class="timeline-message"><%= upd.message %></span>
+                    </div>
+                  <% }); %>
+                </div>
+              <% } %>
+            </div>
+          <% }); %>
+        </div>
+      <% } %>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      Powered by <a href="#" style="font-weight: 600;">Noroshi Status</a> • Designed with Astryx Design Tokens
+    </footer>
+  </div>
+</body>
+</html>

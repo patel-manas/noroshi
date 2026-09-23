@@ -1,0 +1,34 @@
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+# Enable corepack for pnpm
+RUN corepack enable && corepack prepare pnpm@12.5.1 --activate
+
+# Copy monorepo configuration
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY packages/ ./packages/
+COPY apps/api/ ./apps/api/
+
+# Install dependencies and approve build scripts
+RUN pnpm install --frozen-lockfile
+
+# Build @noroshi/db and @noroshi/api
+RUN pnpm --filter @noroshi/db build
+RUN pnpm --filter @noroshi/api build
+
+FROM node:22-alpine AS runner
+
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@12.5.1 --activate
+
+COPY --from=builder /app /app
+
+EXPOSE 3000
+
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOST=0.0.0.0
+
+CMD ["sh", "-c", "pnpm --filter @noroshi/db db:push && node apps/api/dist/index.js"]

@@ -1,0 +1,32 @@
+{
+  "name": "noroshi",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "verify:phase1": "tsx scripts/verify-phase1.ts",
+    "verify:auth": "tsx scripts/verify-auth-flow.ts",
+    "verify:observability": "tsx scripts/verify-observability.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.5.1",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.5.1",
+  "type": "module",
+  "devDependencies": {
+    "tsx": "^4.23.15",
+    "turbo": "^2.11.2"
+  }
+}
