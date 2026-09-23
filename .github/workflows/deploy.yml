@@ -47,13 +47,11 @@ jobs:
 
             # Write production .env directly from GitHub Secret
             echo "⚙️ Writing production .env directly..."
-            cat << 'ENVEOF' > infra/production/.env
-POSTGRES_USER=noroshi
-POSTGRES_PASSWORD=noroshi_production_secure_pwd
-POSTGRES_DB=noroshi
-GRAFANA_USER=admin
-GRAFANA_PASSWORD=admin
-ENVEOF
+            echo "POSTGRES_USER=noroshi" > infra/production/.env
+            echo "POSTGRES_PASSWORD=noroshi_production_secure_pwd" >> infra/production/.env
+            echo "POSTGRES_DB=noroshi" >> infra/production/.env
+            echo "GRAFANA_USER=admin" >> infra/production/.env
+            echo "GRAFANA_PASSWORD=admin" >> infra/production/.env
             echo "VITE_SENTRY_DSN=${VITE_SENTRY_DSN}" >> infra/production/.env
 
             echo "🐳 Building and restarting Docker containers..."
